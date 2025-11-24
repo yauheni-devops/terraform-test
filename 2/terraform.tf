@@ -9,14 +9,13 @@ terraform {
 }
 
 provider "aws" {
-  region  = "eu-north-1" # Стокгольм
-  profile = "trainee"    # Используем созданный ранее профиль
+  region  = var.region   # <--- ВАЖНО: БЕЗ КАВЫЧЕК!
+  profile = "trainee"
 
-  # Блок default_tags автоматически проставит эти теги ВСЕМ ресурсам
   default_tags {
     tags = {
-      Owner   = "Yauheni Filiuta" # <-- ЗАМЕНИТЕ НА СВОЕ ИМЯ И ФАМИЛИЮ
-      Project = "Innowise-Lab"
+      Owner     = "Ivan Ivanov" # <-- Проверьте, что тут ваше имя
+      Project   = "Innowise-Lab"
       ManagedBy = "Terraform"
     }
   }

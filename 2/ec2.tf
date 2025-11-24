@@ -1,23 +1,34 @@
-# 1. Сначала найдем актуальный образ (AMI) для Amazon Linux 2023
-# Это лучше, чем хардкодить ID, так как ID меняются
-data "aws_ami" "amazon_linux" {
+# 1. Locals (Локальные переменные)
+# Это как "формулы" в Excel. Мы берем входные данные (var) и склеиваем их.
+# Если project_name="trainee-project" и env="dev", то name_prefix станет "trainee-project-dev"
+locals {
+  name_prefix = "${var.project_name}-${var.env}"
+}
+
+# 2. Data Source (Поиск образа)
+# Теперь ищем Ubuntu 24.04 вместо Amazon Linux
+data "aws_ami" "ubuntu" {
+  owners      = ["099720109477"] # ID владельца Canonical (разработчики Ubuntu)
   most_recent = true
-  owners      = ["amazon"]
 
   filter {
     name   = "name"
-    values = ["al2023-ami-2023.*-x86_64"]
+    # Ищем конкретную версию Ubuntu Server
+    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
   }
 }
 
-# 2. Описываем сам ресурс - виртуальную машину
+# 3. Resource (Виртуальная машина)
 resource "aws_instance" "my_server" {
-  ami           = data.aws_ami.amazon_linux.id
-  instance_type = "t3.micro" # t3.micro доступен в eu-north-1 (t2 там часто нет)
+  # Ссылка на ID, который нашел блок data выше
+  ami = data.aws_ami.ubuntu.id
 
-  # Тег Name нужен, чтобы видеть красивое имя в консоли AWS
-  # Остальные теги (Owner) подтянутся автоматически из provider
+  # Тип машины берем из переменной (которая задана в dev.tfvars)
+  instance_type = var.instance_type
+
   tags = {
-    Name = "My-First-Terraform-Server"
+    # Генерируем имя: "trainee-project-dev" + "-ec2"
+    # Итоговое имя в консоли будет: trainee-project-dev-ec2
+    Name = "${local.name_prefix}-ec2"
   }
 }
