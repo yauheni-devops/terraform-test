@@ -9,7 +9,7 @@ terraform {
 }
 
 provider "aws" {
-  region  = var.region   # <--- ВАЖНО: БЕЗ КАВЫЧЕК!
+  region  = var.region # <--- ВАЖНО: БЕЗ КАВЫЧЕК!
   profile = "trainee"
 
   default_tags {

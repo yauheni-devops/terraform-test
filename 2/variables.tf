@@ -15,7 +15,17 @@ variable "env" {
   type        = string
 }
 
-variable "instance_type" {
-  description = "EC2 instance type"
-  type        = string
+variable "instance_configs" {
+  description = "Map of instance names and types"
+  type        = map(string)
+  default = {
+    "backend"  = "t3.micro"
+    "frontend" = "t3.nano"
+  }
 }
+variable "name_prefix" {
+  description = "Prefix to be used for all resources"
+  type        = string
+  default     = "web-app" # Значение по умолчанию, если не задано в tfvars
+}
+

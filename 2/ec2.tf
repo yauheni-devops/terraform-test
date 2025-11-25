@@ -1,34 +1,78 @@
-# 1. Locals (Локальные переменные)
-# Это как "формулы" в Excel. Мы берем входные данные (var) и склеиваем их.
-# Если project_name="trainee-project" и env="dev", то name_prefix станет "trainee-project-dev"
-locals {
-  name_prefix = "${var.project_name}-${var.env}"
-}
-
-# 2. Data Source (Поиск образа)
-# Теперь ищем Ubuntu 24.04 вместо Amazon Linux
 data "aws_ami" "ubuntu" {
-  owners      = ["099720109477"] # ID владельца Canonical (разработчики Ubuntu)
   most_recent = true
 
   filter {
     name   = "name"
-    # Ищем конкретную версию Ubuntu Server
-    values = ["ubuntu/images/hvm-ssd-gp3/ubuntu-noble-24.04-amd64-server-*"]
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+
+  owners = ["099720109477"] # Canonical (создатель Ubuntu)
+}
+# --- Генерация SSH ключа ---
+resource "tls_private_key" "ssh_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+resource "aws_key_pair" "deployer" {
+  key_name   = "${var.name_prefix}-key"
+  public_key = tls_private_key.ssh_key.public_key_openssh
+}
+
+# Сохраняем приватный ключ локально, чтобы можно было подключиться
+resource "local_file" "private_key" {
+  content         = tls_private_key.ssh_key.private_key_pem
+  filename        = "${path.module}/private_key.pem"
+  file_permission = "0400"
+}
+
+# --- Security Group ---
+resource "aws_security_group" "main" {
+  name        = "${var.name_prefix}-sg"
+  description = "Allow SSH and HTTP"
+
+  # Dynamic block для входящего трафика (порты 22 и 80)
+  dynamic "ingress" {
+    for_each = [22, 80]
+    content {
+      from_port   = ingress.value
+      to_port     = ingress.value
+      protocol    = "tcp"
+      cidr_blocks = ["0.0.0.0/0"]
+    }
+  }
+
+  # Исходящий трафик (разрешить всё)
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
   }
 }
 
-# 3. Resource (Виртуальная машина)
-resource "aws_instance" "my_server" {
-  # Ссылка на ID, который нашел блок data выше
-  ami = data.aws_ami.ubuntu.id
+# --- EC2 Instance с for_each ---
+resource "aws_instance" "web" {
+  for_each = var.instance_configs
 
-  # Тип машины берем из переменной (которая задана в dev.tfvars)
-  instance_type = var.instance_type
+  # Используем data source для AMI (предполагается, что он у вас уже есть в проекте)
+  # Если нет, добавьте блок data "aws_ami" "ubuntu" { ... }
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = each.value
+
+  # Подключаем ключ и SG
+  key_name               = aws_key_pair.deployer.key_name
+  vpc_security_group_ids = [aws_security_group.main.id]
+
+  # Прокидываем скрипт user-data
+  user_data = file("${path.module}/user-data.sh")
 
   tags = {
-    # Генерируем имя: "trainee-project-dev" + "-ec2"
-    # Итоговое имя в консоли будет: trainee-project-dev-ec2
-    Name = "${local.name_prefix}-ec2"
+    Name = "${var.name_prefix}-${each.key}-ec2"
   }
 }

@@ -1,2 +1,2 @@
-instance_type = "t3.micro"
-env           = "dev"
+name_prefix = "dev"
+env         = "dev"
