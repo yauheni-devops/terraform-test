@@ -60,17 +60,19 @@ resource "aws_security_group" "main" {
 resource "aws_instance" "web" {
   for_each = var.instance_configs
 
-  ami           = data.aws_ami.ubuntu.id
-  instance_type = each.value
-
-  # Подключаем ключ и SG
+  ami                    = data.aws_ami.ubuntu.id
+  instance_type          = each.value
   key_name               = aws_key_pair.deployer.key_name
   vpc_security_group_ids = [aws_security_group.main.id]
+  user_data              = file("${path.module}/user-data.sh")
 
-  # Прокидываем скрипт user-data
-  user_data = file("${path.module}/user-data.sh")
-
+  # Блок tags открывается и закрывается здесь
   tags = {
     Name = "${var.name_prefix}-${each.key}-ec2"
+  }
+
+  # Блок lifecycle идет следом, отдельно от tags
+  lifecycle {
+    ignore_changes = [user_data]
   }
 }
