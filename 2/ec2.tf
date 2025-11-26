@@ -60,8 +60,6 @@ resource "aws_security_group" "main" {
 resource "aws_instance" "web" {
   for_each = var.instance_configs
 
-  # Используем data source для AMI (предполагается, что он у вас уже есть в проекте)
-  # Если нет, добавьте блок data "aws_ami" "ubuntu" { ... }
   ami           = data.aws_ami.ubuntu.id
   instance_type = each.value
 
