@@ -15,7 +15,7 @@ provider "aws" {
 
   default_tags {
     tags = {
-      Owner     = "Ivan Ivanov" # Ваше имя
+      Owner     = "Yauheni Filiuta" 
       Project   = "Innowise-Trainee"
       ManagedBy = "Terraform"
     }
