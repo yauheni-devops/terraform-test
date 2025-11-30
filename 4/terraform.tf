@@ -6,8 +6,14 @@ terraform {
     }
   }
   required_version = ">= 1.0"
-  
-  # Backend локальный по умолчанию, поэтому блок backend не пишем (или можно явно указать local)
+
+  backend "s3" {
+    bucket         = "trainee-project-yauheni-tfstate"
+    key            = "dev/vpc.tfstate"     # Обратите внимание: для VPC ключ один...
+    region         = "eu-north-1"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
+  }
 }
 
 provider "aws" {
@@ -21,3 +27,11 @@ provider "aws" {
     }
   }
 }
+
+#backend "s3" {
+ #   bucket         = "trainee-project-yauheni-tfstate" # Имя вашего бакета
+  #  key            = "dev/vpc.tfstate"                  # Путь внутри бакета
+   # region         = "eu-north-1"                        # Ваш регион
+    #dynamodb_table = "terraform-locks"                   # Имя вашей таблицы
+    #encrypt        = true
+#}
